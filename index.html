@@ -1,0 +1,1463 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#09090b" />
+  <link rel="manifest" href="/manifest-desktop.json" />
+  <title>CLUMSY: your everyday AI — Holographic Command Center</title>
+  <script src="/robot3d.js"></script>
+  <script src="/eyeballs.js"></script>
+  <script src="/jarvis_hud.js"></script>
+  <style>
+    :root {
+      --bg: #09090b;
+      --card-bg: rgba(20, 20, 26, 0.86);
+      --card-border: rgba(255, 255, 255, 0.09);
+      --accent: #c084fc;
+      --accent-cyan: #f472b6;
+      --accent-glow: rgba(192, 132, 252, 0.35);
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --geist-black: #000000;
+      --geist-accents-1: #141418;
+      --geist-border: rgba(255, 255, 255, 0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif; }
+    body {
+      background:
+        radial-gradient(circle at 18% 0%, rgba(168, 85, 247, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 82% 0%, rgba(244, 63, 94, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        var(--bg);
+      background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px, 100% 100%;
+      color: var(--text);
+      padding: 20px 26px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand h1 {
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #ffffff 0%, #e9d5ff 50%, #fbcfe8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: var(--text);
+    }
+    .badge {
+      background: rgba(255, 255, 255, 0.05);
+      color: #e4e4e7;
+      border: 1px solid var(--card-border);
+      padding: 6px 13px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .badge:hover {
+      border-color: var(--accent);
+      background: rgba(168, 85, 247, 0.16);
+      color: #ffffff;
+    }
+
+    /* GSD Phased Execution Ribbon */
+    .gsd-ribbon {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+      padding: 9px 14px;
+      background: rgba(20, 20, 26, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      backdrop-filter: blur(14px);
+    }
+    .gsd-pill {
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+    }
+    .gsd-pill b {
+      color: #f472b6;
+      font-weight: 700;
+    }
+    .gsd-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      display: inline-block;
+    }
+
+    /* Studio category tabs */
+    .studio-tabs {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 6px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(244, 63, 94, 0.22));
+      color: #ffffff;
+      border-color: rgba(192, 132, 252, 0.4);
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr 360px;
+      gap: 18px;
+    }
+
+    @media (max-width: 1120px) {
+      .grid-layout {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 12px; }
+      .grid-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(18px);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+      border-color: rgba(192, 132, 252, 0.32);
+    }
+    .card h2 {
+      font-size: 12.5px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #e4e4e7;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    /* Robot Face Avatar (2D OLED Digital Twin) */
+    .robot-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #111116;
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--card-border);
+      position: relative;
+    }
+    .oled-screen {
+      width: 268px;
+      height: 136px;
+      background: radial-gradient(circle at 50% 50%, #161324 0%, #070709 85%);
+      border-radius: 18px;
+      border: 1.5px solid rgba(192, 132, 252, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: inset 0 0 28px rgba(168, 85, 247, 0.18), 0 0 20px rgba(244, 63, 94, 0.1);
+      position: relative;
+    }
+    .oled-meta {
+      display: none;
+    }
+    .eye {
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      border-radius: 50%;
+      position: relative;
+      box-shadow: 0 0 18px var(--accent-glow);
+      transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .eye.pupil::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #000;
+      border-radius: 50%;
+      top: calc(10px + var(--pupil-dy, 0px));
+      left: calc(10px + var(--pupil-dx, 0px));
+      transition: top 0.12s ease, left 0.12s ease;
+    }
+    .eye.happy {
+      border-radius: 50% 50% 0 0;
+      height: 22px;
+      border-bottom: none;
+    }
+    .eye.listening {
+      transform: scale(1.22);
+      box-shadow: 0 0 24px var(--accent);
+    }
+    .eye.thinking {
+      transform: translate(6px, -8px) scale(0.9);
+    }
+    .eye.sleeping, .eye.blinking {
+      height: 4px;
+      margin-top: 18px;
+      border-radius: 4px;
+    }
+
+    .telemetry-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .slider-panel {
+      width: 100%;
+      margin-top: 10px;
+      background: #14141a;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+      accent-color: #a855f7;
+    }
+
+    /* Live Mic Waveform Bar */
+    .mic-waveform-box {
+      margin-top: 12px;
+      background: #121217;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 8px 12px;
+    }
+    .wf-bars {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      height: 28px;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .wf-bar {
+      flex: 1;
+      background: linear-gradient(to top, #8b5cf6, #ec4899, #fbbf24);
+      border-radius: 3px;
+      transition: height 0.08s ease;
+    }
+
+    /* Control buttons */
+    .btn-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 12px;
+    }
+    button {
+      background: #1c1c24;
+      color: #f4f4f5;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 7px 10px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 11.5px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    button:hover {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: #ffffff;
+      border-color: transparent;
+    }
+    button.primary {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: #ffffff;
+      border-color: transparent;
+      font-weight: 700;
+    }
+    button.recording { background: #ef4444; color: #fff; border-color: #f87171; }
+
+    /* Chat / Voice Console */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 250px;
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 6px;
+    }
+    .msg {
+      padding: 10px 14px;
+      border-radius: 13px;
+      max-width: 85%;
+      line-height: 1.45;
+      font-size: 13.5px;
+    }
+    .msg.user { background: linear-gradient(135deg, #7c3aed, #db2777); align-self: flex-end; color: #fff; }
+    .msg.assistant { background: #18181f; border: 1px solid var(--card-border); align-self: flex-start; }
+    .input-bar {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .input-bar input {
+      flex: 1;
+      background: #121217;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 11px;
+      font-size: 13.5px;
+      outline: none;
+    }
+    .input-bar input:focus { border-color: var(--accent); }
+
+    /* Live ASAP Job Studio Output Drawer */
+    .job-studio-box {
+      margin-top: 14px;
+      background: #121217;
+      border: 1px solid rgba(192, 132, 252, 0.28);
+      border-radius: 14px;
+      padding: 12px;
+      min-height: 155px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .job-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-family: monospace;
+      color: #ffffff;
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .job-code-preview pre, .doc-job-preview pre {
+      background: #18181f;
+      padding: 10px;
+      border-radius: 8px;
+      font-family: Consolas, monospace;
+      font-size: 11.5px;
+      color: #e9d5ff;
+      overflow-x: auto;
+    }
+    .job-stdout {
+      margin-top: 6px;
+      font-family: monospace;
+      font-size: 11.5px;
+      color: var(--success);
+    }
+    .ppt-slide {
+      background: #18181f;
+      border-left: 3px solid var(--accent);
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .ppt-slide-hdr { font-size: 10px; color: var(--accent); font-family: monospace; }
+
+    .event-stream-box {
+      margin-top: 10px;
+      background: #121217;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-family: monospace;
+      font-size: 10.5px;
+      color: var(--text-muted);
+      height: 68px;
+      overflow-y: auto;
+    }
+
+    /* 4-Model Fusion Telemetry Matrix */
+    .fusion-matrix {
+      background: #14141a;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .model-bar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      margin-bottom: 7px;
+      gap: 8px;
+    }
+    .model-bar-track {
+      flex: 1;
+      height: 7px;
+      background: #27272a;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .model-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #8b5cf6, #ec4899);
+      transition: width 0.25s ease;
+    }
+    #barQwen { background: linear-gradient(90deg, #8b5cf6, #c084fc); }
+    #barGemma { background: linear-gradient(90deg, #f43f5e, #fb7185); }
+    #barLlama { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    #barMistral { background: linear-gradient(90deg, #10b981, #34d399); }
+
+    /* Device List */
+    .device-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #14141a;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    .device-info { display: flex; flex-direction: column; gap: 2px; }
+    .device-title { font-weight: 600; font-size: 13px; }
+    .device-sub { font-size: 11px; color: var(--text-muted); }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <canvas id="arcReactorCanvas" width="64" height="64"></canvas>
+      <div>
+        <h1>CLUMSY // YOUR EVERYDAY AI</h1>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <span class="badge" id="wsStatusBadge">WS: Live Ready</span>
+      <span class="badge" id="tokenPoolBadge" style="border-color: rgba(168,85,247,0.4); color: #e9d5ff;">Tokens: Unlimited (Local)</span>
+      <span class="badge" id="ramBadge">RAM: 48MB / 850MB</span>
+      <span class="badge" id="vercelBadge" style="border-color: rgba(255,255,255,0.2); color: #fff; background: rgba(255,255,255,0.06);">▲ Vercel Live</span>
+      <button class="badge" style="background: rgba(168, 85, 247, 0.16); color: #e9d5ff; border-color: rgba(168, 85, 247, 0.38); font-weight: 700; cursor: pointer;" onclick="pairDesktopBluetooth()">🟣 Pair Bluetooth</button>
+      <button class="badge" id="btnInstallDesktopPwa" style="display: inline-flex; background: linear-gradient(135deg, #8b5cf6, #ec4899); color: #fff; font-weight: 700; cursor: pointer; border: none;" onclick="installDesktopApp()">⬇ Install App</button>
+      <a class="badge" href="/mobile" target="_blank">📱 Open Mobile AI Agent</a>
+    </div>
+  </header>
+
+  <!-- GSD Phased Execution & Milestone Telemetry Ribbon -->
+  <div class="gsd-ribbon">
+    <div class="gsd-pill"><span class="gsd-dot"></span> <b>STATUS</b> ONLINE</div>
+    <div class="gsd-pill"><b>GOAL</b> Everyday Autonomous AI &amp; Desktop Hardware Robot</div>
+    <div class="gsd-pill"><b>GSD PIPELINE</b> Plan &rarr; 4-Model Fusion &rarr; System Action</div>
+    <div class="gsd-pill"><b>HARDWARE</b> Arduino Uno • Pan/Tilt Servos • 60 FPS Eyes</div>
+    <div class="gsd-pill"><b>MESH SYNC</b> Zero-Lag Tri-Node Network</div>
+  </div>
+
+  <div class="grid-layout">
+    <!-- Left Column: Robot Hardware Avatar (Arduino Uno + 2D OLED + 3D Viewer + Live Mic) -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2 style="margin-bottom: 0;"><span>🤖</span> Arduino Uno Bot Avatar</h2>
+        <div style="display: flex; gap: 4px;">
+          <button id="btn2D" class="primary" style="padding: 4px 8px; font-size: 11px;" onclick="switchView('2d')">2D OLED</button>
+          <button id="btn3D" style="padding: 4px 8px; font-size: 11px;" onclick="switchView('3d')">3D Model</button>
+          <button id="btnPhoto" style="padding: 4px 8px; font-size: 11px;" onclick="switchView('photo')">Render</button>
+        </div>
+      </div>
+
+      <!-- 2D OLED Digital Twin View (60 FPS Living Eyeball Engine) -->
+      <div id="view2D" class="robot-stage">
+        <div class="oled-screen" id="oledScreen">
+          <canvas id="eyeballCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+          <span class="oled-meta" id="unoFrameTag"></span>
+          <div id="leftEye" class="eye pupil" style="display: none;"></div>
+          <div id="rightEye" class="eye pupil" style="display: none;"></div>
+        </div>
+        <div class="telemetry-row">
+          <span>Pan (D9): <b id="panDeg">90°</b></span>
+          <span>Tilt (D10): <b id="tiltDeg">90°</b></span>
+          <span>State: <b id="robotState" style="color:var(--accent);">IDLE</b></span>
+        </div>
+      </div>
+
+      <!-- 3D Interactive Robot Viewer -->
+      <div id="view3D" style="display: none; height: 185px; width: 100%; border-radius: 16px; overflow: hidden; background: #111116; border: 1px solid var(--card-border); position: relative;">
+        <canvas id="canvas3D" style="width: 100%; height: 100%; display: block;"></canvas>
+        <div style="position: absolute; top: 8px; right: 10px; font-size: 10px; color: var(--accent); font-family: monospace;">
+          <span id="fpsReadout">60 FPS</span> • <span id="lagReadout">0.2ms</span>
+        </div>
+        <div style="position: absolute; bottom: 8px; left: 10px; font-size: 11px; color: var(--text-muted); pointer-events: none;">
+          🖱️ Drag 360° • Double-click to re-center
+        </div>
+      </div>
+
+      <!-- Studio 3D Concept Render View -->
+      <div id="viewPhoto" style="display: none; height: 185px; width: 100%; border-radius: 16px; overflow: hidden; background: #111116; border: 1px solid var(--card-border); position: relative;">
+        <img src="/deskbot_render.jpg" alt="DESKBOT Studio Render" style="width: 100%; height: 100%; object-fit: cover;" />
+      </div>
+
+      <!-- Live Microphone Activity & Bluetooth Status -->
+      <div class="mic-waveform-box">
+        <div style="display: flex; justify-content: space-between; font-size: 11px;">
+          <span>🎙️ <b>Mic Activity</b> (<span id="micSourceLabel">Laptop Array + BT</span>)</span>
+          <span id="btLinkLabel" style="color: var(--success);">BT: Virtual Uno Linked</span>
+        </div>
+        <div class="wf-bars" id="micWaveformBar"></div>
+      </div>
+
+      <!-- Real-Time Pan & Tilt Servo Sliders -->
+      <div class="slider-panel">
+        <div class="slider-row">
+          <label for="panSlider">Pan D9 (15°–165°)</label>
+          <input type="range" id="panSlider" min="15" max="165" value="90" oninput="onServoSliderChange()" />
+        </div>
+        <div class="slider-row">
+          <label for="tiltSlider">Tilt D10 (15°–165°)</label>
+          <input type="range" id="tiltSlider" min="15" max="165" value="90" oninput="onServoSliderChange()" />
+        </div>
+      </div>
+
+      <div class="btn-row" style="grid-template-columns: repeat(4, 1fr);">
+        <button onclick="setExpression('idle', 90, 90)">Idle</button>
+        <button onclick="setExpression('happy', 90, 96)">Happy ^_^</button>
+        <button onclick="setExpression('excited', 90, 104)">Excited ✨</button>
+        <button onclick="setExpression('love', 90, 98)">Love ❤️</button>
+        <button onclick="setExpression('listening', 90, 105)">Listen 🎙️</button>
+        <button onclick="setExpression('thinking', 108, 112)">Think 🧠</button>
+        <button onclick="setExpression('coding', 95, 100)">Coding 💻</button>
+        <button onclick="setExpression('wink', 84, 98)">Wink 😉</button>
+        <button onclick="setExpression('surprised', 90, 108)">Surprised 😮</button>
+        <button onclick="setExpression('focused', 90, 92)">Focused 🎯</button>
+        <button onclick="setExpression('confused', 75, 82)">Confused 🤔</button>
+        <button onclick="blink()">Blink 👁️</button>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <h2><span>🎵</span> System Audio &amp; Song Deck</h2>
+        <div style="background: #14141a; border-radius: 12px; padding: 10px 12px; border: 1px solid var(--card-border);">
+          <div style="font-size: 12.5px; font-weight: 600;" id="nowPlaying">Chill Synth Beats (Local)</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;" id="mediaStatus">Laptop Master Audio • Ready</div>
+          <div style="display: flex; gap: 6px;">
+            <button onclick="toggleMedia()">▶ / ⏸ Play Song</button>
+            <button onclick="nextTrack()">⏭ Next Track</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Column: CLUMSY Voice & Universal ASAP Job Studio -->
+    <div class="card">
+      <h2>
+        <span>⚡ CLUMSY Master Orchestrator</span>
+        <span style="font-size: 11px; color: var(--text-muted);" id="activeSpecialistBadge">Lead: Mistral + Qwen 3.5</span>
+      </h2>
+      <div class="chat-container">
+        <div class="messages" id="messageList">
+          <div class="msg assistant">
+            Good day! I am <b>CLUMSY: your everyday AI</b>, running on your <b>4-Model Fusion Engine</b> (Qwen 3.5 + Google Gemma 4 + Meta Llama 4 + Mistral). Ask me to <b>write code</b>, <b>render 3D models in Blender</b>, <b>create graphics or videos</b>, <b>play songs</b>, or <b>automate your system</b>!
+          </div>
+        </div>
+        <div class="input-bar">
+          <input type="text" id="userInput" placeholder="Speak or type to CLUMSY ('open Gmail & send email', 'write Java quicksort', 'render 3D model in Blender', 'play Netflix')..." onkeydown="if(event.key==='Enter') sendQuery(false)" />
+          <button class="primary" onclick="sendQuery(false)">Execute ↵</button>
+          <button id="btnVoiceDictation" onclick="toggleVoiceInput()" title="Hands-Free Voice Recognition Toggle">🎙️ Speak</button>
+        </div>
+        <div id="liveVoiceTranscriptBar" style="margin-top: 6px; font-size: 11px; color: var(--accent-cyan); font-family: monospace; min-height: 16px;">
+          🎙️ Voice Engine Ready: Say "Hey Clumsy", "Open Gmail", "Schedule Calendar meeting", "Save Note", "Play on Netflix", "Render 3D Model in Blender", "Make AI Video", or "Create AI Pic".
+        </div>
+      </div>
+
+      <!-- Instant ASAP Job Studio Output Preview -->
+      <div class="job-studio-box" id="jobStudioOutput" style="max-height: 295px;">
+        <div class="job-badge">CLUMSY EVERYDAY AI // CREATIVE &amp; EXECUTION STUDIO</div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Every voice or text command renders live here: <b>Interplatform Hub</b> (Gmail, Calendar, Notes, Netflix, Amazon), <b>3D Model &amp; Blender Studio</b>, <b>AI Video Maker</b>, <b>AI Pic &amp; Graphic Creator</b>, <b>Code</b>, <b>PPT</b>, and <b>AI Flowcharts</b>.
+        </div>
+
+        <!-- Vercel-Style Filter Tabs -->
+        <div class="studio-tabs">
+          <button class="tab-btn active" onclick="filterStudio('all', this)">All (14)</button>
+          <button class="tab-btn" onclick="filterStudio('apps', this)">Apps &amp; Hub</button>
+          <button class="tab-btn" onclick="filterStudio('3d', this)">3D &amp; CAD</button>
+          <button class="tab-btn" onclick="filterStudio('media', this)">Media &amp; Video</button>
+          <button class="tab-btn" onclick="filterStudio('code', this)">Code &amp; Docs</button>
+        </div>
+
+        <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;" id="studioActionChips">
+          <button data-cat="apps" onclick="triggerInterplatform('netflix', 'Play Stranger Things on Netflix')">🎬 Netflix</button>
+          <button data-cat="apps" onclick="triggerInterplatform('prime_video', 'Play The Boys on Amazon Prime Video')">📺 Prime Video</button>
+          <button data-cat="apps" onclick="triggerInterplatform('hotstar', 'Play Marvel Avengers on Disney+ Hotstar')">🌟 Hotstar</button>
+          <button data-cat="apps" onclick="triggerInterplatform('gmail', 'Compose email in Gmail about CLUMSY Launch')">✉️ Gmail</button>
+          <button data-cat="apps" onclick="triggerInterplatform('calendar', 'Schedule meeting CLUMSY Review in Google Calendar tomorrow at 10am')">📅 Calendar</button>
+          <button data-cat="apps" onclick="triggerInterplatform('notes', 'Take a note: Upgrade Deskbot 3D Blender pipeline')">📝 Notes</button>
+          <button data-cat="apps" onclick="triggerInterplatform('amazon', 'Search Arduino Servo Kit on Amazon')">🛒 Amazon</button>
+          <button data-cat="3d" onclick="triggerInstantJob('3d_model', 'Create an engineering 3D model of a Skyscraper Building in Blender')">🏢 3D Building</button>
+          <button data-cat="3d" onclick="triggerInstantJob('3d_model', 'Create an engineering 3D model of a Suspension Bridge in Blender')">🌉 3D Bridge</button>
+          <button data-cat="3d" onclick="triggerInstantJob('3d_model', 'Render a 3D model of Quadcopter Drone in Blender')">🚁 3D Drone</button>
+          <button data-cat="media" onclick="triggerInstantJob('pic', 'Generate a realistic photo of Sunset on Goa Beach')">📸 AI Photo Studio</button>
+          <button data-cat="media" onclick="triggerInstantJob('video', 'Make a video about CLUMSY Autonomous Robotics')">🎥 AI Video Maker</button>
+          <button data-cat="code" onclick="triggerInstantJob('ai_tool', 'Create a mind map flowchart of CLUMSY Tri-Node Architecture')">🧠 AI Flowchart</button>
+          <button data-cat="code" onclick="triggerInstantJob('code', 'Write Java code to print My name is Aditya Pratap Singh')">💻 Java/Python Code</button>
+        </div>
+      </div>
+
+      <div class="event-stream-box" id="liveEventStream">
+        <div>[CLUMSY KERNEL] 4-Model Fusion &amp; Multi-Node Bluetooth Mesh active.</div>
+      </div>
+    </div>
+
+    <!-- Right Column: 4-Model Fusion Telemetry & Connected Mesh Map -->
+    <div class="card">
+      <h2><span>🧠</span> 4-Model Fusion Brain (<code>CLUMSY-X1</code>)</h2>
+      <div class="fusion-matrix" id="fusionMatrixPanel">
+        <div class="model-bar-row">
+          <span style="width: 92px;">Qwen 3.5</span>
+          <div class="model-bar-track"><div class="model-bar-fill" id="barQwen" style="width: 25%;"></div></div>
+          <span id="pctQwen" style="width: 34px; text-align: right;">25%</span>
+        </div>
+        <div class="model-bar-row">
+          <span style="width: 92px;">Gemma 4</span>
+          <div class="model-bar-track"><div class="model-bar-fill" id="barGemma" style="width: 25%;"></div></div>
+          <span id="pctGemma" style="width: 34px; text-align: right;">25%</span>
+        </div>
+        <div class="model-bar-row">
+          <span style="width: 92px;">Llama 4</span>
+          <div class="model-bar-track"><div class="model-bar-fill" id="barLlama" style="width: 25%;"></div></div>
+          <span id="pctLlama" style="width: 34px; text-align: right;">25%</span>
+        </div>
+        <div class="model-bar-row" style="margin-bottom: 0;">
+          <span style="width: 92px;">Mistral</span>
+          <div class="model-bar-track"><div class="model-bar-fill" id="barMistral" style="width: 25%;"></div></div>
+          <span id="pctMistral" style="width: 34px; text-align: right;">25%</span>
+        </div>
+      </div>
+
+      <h2><span>🌐</span> Tri-Node Mesh Topology</h2>
+      <div class="device-item" id="deviceAvatar">
+        <div class="device-info">
+          <div class="device-title">Arduino Uno Bot Avatar</div>
+          <div class="device-sub" id="avatarSub">Virtual + HC-05 BT • D9/D10 PWM • A4/A5 OLED</div>
+        </div>
+        <div class="status-dot"></div>
+      </div>
+
+      <div class="device-item" id="devicePhone">
+        <div class="device-info">
+          <div class="device-title">Mobile Personal AI Agent</div>
+          <div class="device-sub" id="phoneSub">Laptop Bluetooth Linked • Battery: 87%</div>
+        </div>
+        <div class="status-dot"></div>
+      </div>
+
+      <div class="device-item" id="deviceLaptop">
+        <div class="device-info">
+          <div class="device-title">Laptop Master Map (Heart)</div>
+          <div class="device-sub" id="laptopSub">ASAP Job Engine • Code / PPT / Graphics / Audio</div>
+        </div>
+        <div class="status-dot"></div>
+      </div>
+
+      <div class="device-item" id="deviceDesktop">
+        <div class="device-info">
+          <div class="device-title">Single-Slot RAM Guard</div>
+          <div class="device-sub" id="desktopSub">Ultra-Low RAM (&lt; 850 MB) • 100% Offline</div>
+        </div>
+        <div class="status-dot"></div>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <h2><span>⚡</span> Quick Command Triggers</h2>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button onclick="sendQuickCommand('phone_check')">📱 Sync Mobile AI Agent &amp; Battery</button>
+          <button onclick="sendQuickCommand('open_spotify')">💻 Launch App on Laptop System</button>
+          <button onclick="sendQuickCommand('center_robot')">🤖 Re-Center Arduino Servos (90°/90°)</button>
+          <button onclick="sendQuickCommand('test_emotions')">🎭 Run Full Bot Emotion Cycle</button>
+          <button onclick="sendQuickCommand('ping_devices')">📡 Ping All Mesh Nodes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const leftEye = document.getElementById('leftEye');
+    const rightEye = document.getElementById('rightEye');
+    const robotState = document.getElementById('robotState');
+    const panDeg = document.getElementById('panDeg');
+    const tiltDeg = document.getElementById('tiltDeg');
+    const panSlider = document.getElementById('panSlider');
+    const tiltSlider = document.getElementById('tiltSlider');
+    const messageList = document.getElementById('messageList');
+    const liveEventStream = document.getElementById('liveEventStream');
+    const wsStatusBadge = document.getElementById('wsStatusBadge');
+    const jobStudioOutput = document.getElementById('jobStudioOutput');
+
+    let viewer3D = null;
+    let eyeballEngine = null;
+    let jarvisHUD = null;
+    let currentExpression = 'idle';
+    let wsConn = null;
+    let activeRecognition = null;
+    let isDictating = false;
+
+    let deferredDesktopInstall = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredDesktopInstall = e;
+      const btn = document.getElementById('btnInstallDesktopPwa');
+      if (btn) btn.style.display = 'inline-block';
+    });
+
+    async function installDesktopApp() {
+      if (deferredDesktopInstall) {
+        deferredDesktopInstall.prompt();
+        await deferredDesktopInstall.userChoice;
+        deferredDesktopInstall = null;
+      } else {
+        alert("To install CLUMSY on your Laptop:\n1. Click the Install icon (⊕) on the right side of the browser URL address bar, OR\n2. Click the 3 dots (⋮ / ⋯) in Chrome/Edge -> 'Apps' -> 'Install CLUMSY'.");
+      }
+    }
+
+    async function pairDesktopBluetooth() {
+      try {
+        if (navigator.bluetooth && navigator.bluetooth.requestDevice) {
+          const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+          const dName = device.name || 'Phone-CLUMSY-Node';
+          document.getElementById('btLinkLabel').textContent = `BT: Paired (${dName})`;
+          triggerDesktopWakeupShake(() => {
+            const msg = `Bluetooth connected to ${dName}! Your phone and laptop are now synced.`;
+            appendMessage(msg, 'assistant');
+            speakJarvisReply(msg);
+          });
+          return;
+        }
+      } catch (_) {}
+      setExpression('happy', 90, 96, true);
+      appendMessage('Bluetooth Mesh active. Open /mobile on your phone and tap "Pair Bluetooth" to link!', 'assistant');
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    if (window.DeskbotEyeballEngine) {
+      eyeballEngine = new window.DeskbotEyeballEngine(document.getElementById('eyeballCanvas'));
+    }
+    if (window.JarvisHolographicHUD) {
+      jarvisHUD = new window.JarvisHolographicHUD('arcReactorCanvas', 'micWaveformBar');
+    }
+
+    function logStreamEvent(label, detail) {
+      if (!liveEventStream) return;
+      const line = document.createElement('div');
+      const ts = new Date().toLocaleTimeString();
+      line.textContent = `[${ts}] ${label}: ${detail}`;
+      liveEventStream.appendChild(line);
+      liveEventStream.scrollTop = liveEventStream.scrollHeight;
+    }
+
+    function updateFusionUI(fusion) {
+      if (!fusion || !fusion.weights) return;
+      const w = fusion.weights;
+      const map = [
+        ['qwen3.5', 'barQwen', 'pctQwen'],
+        ['gemma4', 'barGemma', 'pctGemma'],
+        ['llama4', 'barLlama', 'pctLlama'],
+        ['mistral', 'barMistral', 'pctMistral'],
+      ];
+      for (const [key, barId, pctId] of map) {
+        const pct = Math.round((w[key] || 0.25) * 100);
+        const b = document.getElementById(barId);
+        const p = document.getElementById(pctId);
+        if (b) b.style.width = pct + '%';
+        if (p) p.textContent = pct + '%';
+      }
+      const badge = document.getElementById('activeSpecialistBadge');
+      if (badge && fusion.lead_display) {
+        badge.textContent = `Lead: ${fusion.lead_display}`;
+      }
+      const ramBadge = document.getElementById('ramBadge');
+      if (ramBadge && fusion.active_ram_mb) {
+        ramBadge.textContent = `RAM: ${fusion.active_ram_mb}MB / ${fusion.max_ram_mb || 850}MB`;
+      }
+    }
+
+    function renderJobArtifact(artifact) {
+      if (!artifact || !jobStudioOutput) return;
+      if (artifact.preview_html) {
+        jobStudioOutput.innerHTML = artifact.preview_html;
+        // Execute any embedded inline <script> tags inside the preview_html (e.g. 3D Model Viewer & AI Video Canvas)
+        jobStudioOutput.querySelectorAll('script').forEach((oldScript) => {
+          const newScript = document.createElement('script');
+          newScript.textContent = oldScript.textContent;
+          oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+      }
+      if (artifact.job_type === 'music' && jarvisHUD) {
+        jarvisHUD.toggleSynthMusic(true);
+        document.getElementById('nowPlaying').textContent = artifact.track || 'CLUMSY Synthwave';
+        document.getElementById('mediaStatus').textContent = 'Playing on Laptop Master Audio';
+      }
+    }
+
+    function speakJarvisReply(spokenText) {
+      if (!spokenText || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(spokenText);
+        utter.rate = 1.04;
+        utter.pitch = 0.96;
+        utter.onstart = () => {
+          if (eyeballEngine) eyeballEngine.setAudioLevel(0.8);
+        };
+        utter.onend = () => {
+          if (eyeballEngine) eyeballEngine.setAudioLevel(0.08);
+        };
+        window.speechSynthesis.speak(utter);
+      } catch (_) {}
+    }
+    const speakClumsyReply = speakJarvisReply;
+    window.speakClumsyReply = speakJarvisReply;
+
+    function connectWebSocket(wsUrl) {
+      try {
+        if (wsConn && (wsConn.readyState === WebSocket.OPEN || wsConn.readyState === WebSocket.CONNECTING)) {
+          return;
+        }
+        wsConn = new WebSocket(wsUrl);
+        wsConn.onopen = () => {
+          wsStatusBadge.textContent = 'WS: LIVE CONNECTED';
+          wsStatusBadge.style.borderColor = '#34d399';
+          wsStatusBadge.style.color = '#34d399';
+          logStreamEvent('WS_OPEN', wsUrl);
+        };
+        wsConn.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data);
+            const payload = data.payload || data.params || data;
+            if (payload.telemetry) {
+              setExpression(
+                payload.telemetry.expression || 'idle',
+                payload.telemetry.pan_deg || 90,
+                payload.telemetry.tilt_deg || 90,
+                false
+              );
+            }
+            if (payload.fusion) updateFusionUI(payload.fusion);
+            if (payload.job_artifact) renderJobArtifact(payload.job_artifact);
+            if (payload.auto_open_url) {
+              // The server already opened this natively on the laptop; just log it (avoids a duplicate tab).
+              logStreamEvent('LAPTOP_AUTO_PLAY', payload.auto_open_url);
+            }
+            if (payload.response) appendMessage(payload.response, 'assistant');
+          } catch (_) {}
+        };
+        wsConn.onclose = () => {
+          wsConn = null;
+          setTimeout(() => connectWebSocket(wsUrl), 2500);
+        };
+      } catch (_) {}
+    }
+
+    function init3D() {
+      if (viewer3D) return;
+      const canvas = document.getElementById('canvas3D');
+      if (window.Deskbot3DViewer && canvas) {
+        viewer3D = new window.Deskbot3DViewer(canvas);
+        viewer3D.setPose(Number(panSlider.value), Number(tiltSlider.value), currentExpression);
+      }
+    }
+
+    function switchView(mode) {
+      const v2D = document.getElementById('view2D');
+      const v3D = document.getElementById('view3D');
+      const vPhoto = document.getElementById('viewPhoto');
+      const b2D = document.getElementById('btn2D');
+      const b3D = document.getElementById('btn3D');
+      const bPhoto = document.getElementById('btnPhoto');
+
+      v2D.style.display = 'none';
+      v3D.style.display = 'none';
+      vPhoto.style.display = 'none';
+      b2D.classList.remove('primary');
+      b3D.classList.remove('primary');
+      bPhoto.classList.remove('primary');
+
+      if (mode === '3d') {
+        v3D.style.display = 'block';
+        b3D.classList.add('primary');
+        init3D();
+      } else if (mode === 'photo') {
+        vPhoto.style.display = 'block';
+        bPhoto.classList.add('primary');
+      } else {
+        v2D.style.display = 'flex';
+        b2D.classList.add('primary');
+      }
+    }
+
+    function updatePupilOffsets(pan, tilt) {
+      const dx = (((pan - 90) / 75) * 6).toFixed(1) + 'px';
+      const dy = (((90 - tilt) / 75) * 5).toFixed(1) + 'px';
+      document.documentElement.style.setProperty('--pupil-dx', dx);
+      document.documentElement.style.setProperty('--pupil-dy', dy);
+    }
+
+    function setExpression(expr, pan = 90, tilt = 90, syncServer = true) {
+      const clampedPan = Math.max(15, Math.min(165, Math.round(pan)));
+      const clampedTilt = Math.max(15, Math.min(165, Math.round(tilt)));
+      currentExpression = expr;
+
+      leftEye.className = 'eye';
+      rightEye.className = 'eye';
+      robotState.textContent = expr.toUpperCase();
+      panDeg.textContent = clampedPan + '°';
+      tiltDeg.textContent = clampedTilt + '°';
+      panSlider.value = clampedPan;
+      tiltSlider.value = clampedTilt;
+      updatePupilOffsets(clampedPan, clampedTilt);
+
+      const unoTag = document.getElementById('unoFrameTag');
+      if (unoTag) unoTag.textContent = '';
+
+      if (eyeballEngine) {
+        eyeballEngine.setReaction(expr, clampedPan, clampedTilt);
+        const audioEnergy = (expr === 'listening' || expr === 'speaking') ? 0.72 : 0.08;
+        eyeballEngine.setAudioLevel(audioEnergy);
+      }
+
+      if (jarvisHUD) {
+        const eLevel = expr === 'listening' ? 0.9 : (expr === 'thinking' ? 0.7 : 0.3);
+        jarvisHUD.setActivity(expr, eLevel);
+      }
+
+      if (viewer3D) {
+        viewer3D.setPose(clampedPan, clampedTilt, expr);
+        const fpsEl = document.getElementById('fpsReadout');
+        const lagEl = document.getElementById('lagReadout');
+        if (fpsEl) fpsEl.textContent = `${viewer3D.fps} FPS`;
+        if (lagEl) lagEl.textContent = `${viewer3D.lastPostureLagMs}ms`;
+      }
+
+      if (expr === 'happy') {
+        leftEye.classList.add('happy');
+        rightEye.classList.add('happy');
+      } else if (expr === 'listening') {
+        leftEye.classList.add('listening');
+        rightEye.classList.add('listening');
+      } else if (expr === 'thinking') {
+        leftEye.classList.add('thinking');
+        rightEye.classList.add('thinking');
+      } else if (expr === 'confused') {
+        leftEye.classList.add('listening');
+        rightEye.classList.add('happy');
+      } else if (expr === 'sleeping') {
+        leftEye.classList.add('sleeping');
+        rightEye.classList.add('sleeping');
+      } else {
+        leftEye.classList.add('pupil');
+        rightEye.classList.add('pupil');
+      }
+
+      if (syncServer) {
+        logStreamEvent('UNO_SERIAL', `<P${clampedPan},T${clampedTilt},E${expr}>`);
+        fetch('/api/robot/telemetry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expression: expr, pan: clampedPan, tilt: clampedTilt })
+        }).catch(() => {});
+      }
+    }
+
+    function onServoSliderChange() {
+      setExpression(currentExpression, Number(panSlider.value), Number(tiltSlider.value), true);
+    }
+
+    function blink() {
+      if (eyeballEngine) eyeballEngine.triggerBlink();
+      leftEye.classList.add('blinking');
+      rightEye.classList.add('blinking');
+      setTimeout(() => {
+        leftEye.classList.remove('blinking');
+        rightEye.classList.remove('blinking');
+      }, 180);
+    }
+
+    setInterval(() => {
+      if (robotState.textContent === 'IDLE') blink();
+    }, 4500);
+
+    async function refreshStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        const phoneSub = document.getElementById('phoneSub');
+        if (phoneSub && data.phone_battery !== undefined) {
+          phoneSub.textContent = `Laptop BT Linked • Battery: ${data.phone_battery}% • ${data.phone_unread || 0} Alerts`;
+        }
+        if (data.fusion) updateFusionUI(data.fusion);
+        if (data.telemetry) {
+          setExpression(
+            data.telemetry.expression || 'idle',
+            data.telemetry.pan_deg || 90,
+            data.telemetry.tilt_deg || 90,
+            false
+          );
+        }
+        if (!wsConn && data.ws_port) {
+          connectWebSocket(`ws://${window.location.hostname || '127.0.0.1'}:${data.ws_port}`);
+        }
+      } catch (_) {}
+    }
+
+    function normalizeVoicePhoneticsJS(rawText) {
+      if (!rawText) return '';
+      return String(rawText)
+        .replace(/\b(clumzy|klumsy|klumzy|clumsee|clumsie)\b/gi, 'CLUMSY')
+        .replace(/\b(harvis|charvis|jervis|jarves)\b/gi, 'CLUMSY')
+        .replace(/\b(jeemail|gee\s*mail|g\s+mail|g-mail)\b/gi, 'Gmail')
+        .replace(/\b(callender|calender|calandar)\b/gi, 'Calendar')
+        .replace(/\b(net\s+flicks|netflex|net\s+flix)\b/gi, 'Netflix')
+        .replace(/\b(ama\s+zon|amazn)\b/gi, 'Amazon')
+        .replace(/\b(blander|blendr|blendar)\b/gi, 'Blender')
+        .replace(/\b(three\s+d|3\s+d|3-d|threed)\b/gi, '3D')
+        .replace(/\b(p\s+p\s+t|power\s+point)\b/gi, 'PPT')
+        .replace(/\b(java\s+script)\b/gi, 'JavaScript')
+        .trim();
+    }
+
+    function filterStudio(category, btnEl) {
+      if (btnEl) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btnEl.classList.add('active');
+      }
+      const chips = document.querySelectorAll('#studioActionChips button');
+      chips.forEach(chip => {
+        if (category === 'all' || chip.getAttribute('data-cat') === category) {
+          chip.style.display = 'inline-block';
+        } else {
+          chip.style.display = 'none';
+        }
+      });
+    }
+
+    // 50-Second Inactivity Sleep Timer & Wake-Up Shake Sequence
+    const DESKTOP_SLEEP_TIMEOUT_MS = 50000;
+    let desktopSleepTimer = null;
+    let isDesktopSleeping = false;
+
+    function resetDesktopSleepTimer() {
+      if (desktopSleepTimer) clearTimeout(desktopSleepTimer);
+      desktopSleepTimer = setTimeout(() => {
+        isDesktopSleeping = true;
+        setExpression('sleeping', 90, 80, true);
+        const voiceBar = document.getElementById('liveVoiceTranscriptBar');
+        if (voiceBar) {
+          voiceBar.textContent = '💤 CLUMSY is sleeping (no task for 50s). Microphone is active — say "Hey Clumsy" to wake up!';
+        }
+      }, DESKTOP_SLEEP_TIMEOUT_MS);
+    }
+
+    function triggerDesktopWakeupShake(callback) {
+      isDesktopSleeping = false;
+      resetDesktopSleepTimer();
+      if (jarvisHUD) jarvisHUD.playSciFiChime('wake');
+      if (eyeballEngine && typeof eyeballEngine.triggerWakeupShake === 'function') {
+        eyeballEngine.triggerWakeupShake(() => {
+          setExpression('happy', 90, 96, true);
+          if (typeof callback === 'function') callback();
+        });
+      } else {
+        setExpression('happy', 90, 96, true);
+        if (typeof callback === 'function') callback();
+      }
+    }
+
+    async function sendQuery(isVoice = false, alternatives = null) {
+      const input = document.getElementById('userInput');
+      const rawText = input.value.trim();
+      const text = normalizeVoicePhoneticsJS(rawText);
+      if (!text) return;
+
+      if (isDesktopSleeping) {
+        const remainder = text.replace(/^(?:hey|hi|ok|okay|yo)?\s*(?:clumsy|wake\s+up)[\s,!?.:-]*/i, '').trim();
+        if (!remainder) {
+          input.value = '';
+          appendMessage(text, 'user');
+          triggerDesktopWakeupShake(() => {
+            const msg = "I'm wide awake and ready! How can I help you?";
+            appendMessage(msg, 'assistant');
+            speakJarvisReply(msg);
+          });
+          return;
+        }
+        triggerDesktopWakeupShake();
+      } else {
+        resetDesktopSleepTimer();
+      }
+
+      appendMessage(text, 'user');
+      input.value = '';
+
+      // Instant local check for "thank you" -> random happy / love / wink reaction
+      if (/\b(thank\s*you|thanks|thx|appreciate\s+it)\b/i.test(text)) {
+        const rxPool = ['happy', 'love', 'wink'];
+        const chosenRx = rxPool[Math.floor(Math.random() * rxPool.length)];
+        const replies = {
+          happy: "You're very welcome! Always happy to help you!",
+          love: "Aww, my pleasure! Sending you lots of love!",
+          wink: "Anytime at all! Consider it done with a wink!",
+        };
+        setExpression(chosenRx, 90, 98, true);
+        appendMessage(replies[chosenRx], 'assistant');
+        speakJarvisReply(replies[chosenRx]);
+        logStreamEvent('CLUMSY_EMOTION', `THANK_YOU -> ${chosenRx.toUpperCase()}`);
+        return;
+      }
+
+      setExpression('thinking', 105, 115, false);
+      if (jarvisHUD) jarvisHUD.playSciFiChime('wake');
+      logStreamEvent(isVoice ? 'VOICE_CMD' : 'USER_CMD', text);
+
+      try {
+        const res = await fetch('/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: text, alternatives: alternatives, voice: isVoice, execute_os: true, source_device: 'laptop_hub' })
+        });
+        const data = await res.json();
+        appendMessage(data.response, 'assistant');
+        if (data.spoken_tts) speakJarvisReply(data.spoken_tts);
+        if (data.fusion) updateFusionUI(data.fusion);
+        if (data.job_artifact) renderJobArtifact(data.job_artifact);
+        if (data.auto_open_url) {
+          logStreamEvent('LAPTOP_AUTO_PLAY', data.auto_open_url);
+        }
+        const t = data.telemetry || {};
+        setExpression(
+          (data.robot_state || 'happy').toLowerCase(),
+          t.pan_deg || 90,
+          t.tilt_deg || 95,
+          false
+        );
+        logStreamEvent('CLUMSY_FUSION', `${data.intent || 'executed'} -> ${data.robot_state || 'HAPPY'}`);
+      } catch (err) {
+        appendMessage(`Executed offline: "${text}".`, 'assistant');
+        setExpression('happy', 90, 95, false);
+      }
+    }
+
+    async function triggerInterplatform(platform, promptText) {
+      setExpression('thinking', 102, 112, false);
+      if (jarvisHUD) jarvisHUD.playSciFiChime('exec');
+      try {
+        const res = await fetch('/api/interplatform', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform: platform, prompt: promptText, execute_os: true })
+        });
+        const artifact = await res.json();
+        renderJobArtifact(artifact);
+        const msg = artifact.spoken_summary || `Opened ${platform.toUpperCase()} Hub: ${artifact.title}`;
+        appendMessage(msg, 'assistant');
+        speakJarvisReply(msg);
+        setExpression('happy', 90, 98, false);
+        logStreamEvent('INTERPLATFORM', `${platform.toUpperCase()} -> ${artifact.action || 'OPEN'}`);
+      } catch (_) {}
+    }
+
+    async function triggerInstantJob(jobType, promptText) {
+      setExpression('thinking', 105, 115, false);
+      if (jarvisHUD) jarvisHUD.playSciFiChime('exec');
+      try {
+        const res = await fetch('/api/jobs/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_type: jobType, prompt: promptText })
+        });
+        const artifact = await res.json();
+        renderJobArtifact(artifact);
+        appendMessage(`Completed ${jobType.toUpperCase()} job on Laptop (${artifact.execution_time_ms}ms): ${artifact.title}`, 'assistant');
+        setExpression('happy', 90, 98, false);
+        logStreamEvent('JOB_DONE', `${jobType.toUpperCase()} in ${artifact.execution_time_ms}ms`);
+      } catch (_) {}
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function appendMessage(text, sender) {
+      const div = document.createElement('div');
+      div.className = `msg ${sender}`;
+      const raw = String(text || '');
+      if (raw.includes('```')) {
+        const formatted = escapeHtml(raw).replace(
+          /```([a-zA-Z0-9_+]*)\n([\s\S]*?)```/g,
+          (_, lang, code) =>
+            `<div style="margin-top:8px;background:#091222;border:1px solid rgba(56,189,248,0.4);border-radius:8px;padding:8px;"><div style="font-size:10px;color:#38bdf8;font-weight:700;margin-bottom:4px;">${(lang || 'CODE').toUpperCase()}</div><pre style="font-family:Consolas,monospace;font-size:12px;color:#e0f2fe;white-space:pre-wrap;margin:0;">${code.trim()}</pre></div>`
+        );
+        div.innerHTML = formatted.replace(/\nSTDOUT:/g, '<br><b style="color:#34d399;">STDOUT:</b>');
+      } else {
+        div.textContent = raw;
+      }
+      messageList.appendChild(div);
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    async function toggleMedia() {
+      const playing = jarvisHUD ? jarvisHUD.toggleSynthMusic() : true;
+      try {
+        const res = await fetch('/api/media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: playing ? 'play' : 'pause' })
+        });
+        const data = await res.json();
+        document.getElementById('nowPlaying').textContent = data.track || 'Chill Synth Beats (Local)';
+        document.getElementById('mediaStatus').textContent = playing
+          ? `Playing on System Audio • Vol ${data.volume || 70}%`
+          : 'Paused';
+      } catch (_) {}
+      appendMessage(playing ? "Playing synthwave audio on your laptop system." : "Paused system audio.", 'assistant');
+      setExpression('happy', 90, 95);
+    }
+
+    async function nextTrack() {
+      if (jarvisHUD) jarvisHUD.toggleSynthMusic(true);
+      try {
+        const res = await fetch('/api/media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'next' })
+        });
+        const data = await res.json();
+        document.getElementById('nowPlaying').textContent = data.track || 'Cyberpunk Night Drive';
+      } catch (_) {}
+      appendMessage("Skipped to next track on system audio.", 'assistant');
+      setExpression('happy', 90, 95);
+    }
+
+    async function sendQuickCommand(type) {
+      if (type === 'phone_check') {
+        document.getElementById('userInput').value = "check my details from my phone";
+        sendQuery(false);
+      } else if (type === 'open_spotify') {
+        document.getElementById('userInput').value = "open spotify on my laptop";
+        sendQuery(false);
+      } else if (type === 'center_robot' || type === 'test_emotions' || type === 'ping_devices') {
+        try {
+          const res = await fetch('/api/quick_action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trigger: type })
+          });
+          const data = await res.json();
+          if (type === 'center_robot') {
+            setExpression('idle', 90, 90, false);
+            appendMessage(data.message || "Re-centered Arduino Uno servos to 90°.", 'assistant');
+          } else if (type === 'test_emotions') {
+            appendMessage(`Executed emotion cycle: ${(data.sequence || []).join(' → ')}`, 'assistant');
+            setExpression('idle', 90, 90, false);
+          } else if (type === 'ping_devices') {
+            const summary = (data.devices || []).map(d => `${d.name} (${d.rtt_ms}ms)`).join(', ');
+            appendMessage(`Mesh Ping OK: ${summary}`, 'assistant');
+          }
+          logStreamEvent('QUICK_ACTION', type);
+        } catch (_) {}
+      }
+    }
+
+    let liveMicContext = null;
+    let liveMicAnalyser = null;
+
+    async function startLiveMicAnalyzer() {
+      if (liveMicAnalyser || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        liveMicContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = liveMicContext.createMediaStreamSource(stream);
+        liveMicAnalyser = liveMicContext.createAnalyser();
+        liveMicAnalyser.fftSize = 64;
+        source.connect(liveMicAnalyser);
+        const freqData = new Uint8Array(liveMicAnalyser.frequencyBinCount);
+
+        function pollAudioLevel() {
+          if (liveMicAnalyser && isDictating) {
+            liveMicAnalyser.getByteFrequencyData(freqData);
+            let sum = 0;
+            for (let i = 0; i < freqData.length; i++) sum += freqData[i];
+            const avg = sum / (freqData.length * 255);
+            if (eyeballEngine) eyeballEngine.setAudioLevel(Math.min(1, avg * 2.2));
+            if (jarvisHUD) jarvisHUD.setActivity('listening', Math.max(0.25, Math.min(1, avg * 2.5)));
+          }
+          requestAnimationFrame(pollAudioLevel);
+        }
+        requestAnimationFrame(pollAudioLevel);
+      } catch (_) {}
+    }
+
+    function toggleVoiceInput() {
+      const btn = document.getElementById('btnVoiceDictation');
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert("Speech Recognition API is not supported in this browser. Please type your query.");
+        return;
+      }
+      if (isDictating) {
+        isDictating = false;
+        if (activeRecognition) {
+          try { activeRecognition.stop(); } catch (_) {}
+        }
+        btn.classList.remove('recording');
+        btn.textContent = '🎙️ Stream Mic: OFF';
+        setExpression('idle', 90, 90, false);
+        return;
+      }
+
+      startLiveMicAnalyzer();
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      activeRecognition = new SpeechRecognition();
+      activeRecognition.lang = 'en-US';
+      activeRecognition.continuous = true;
+      activeRecognition.interimResults = true;
+      activeRecognition.maxAlternatives = 3;
+      isDictating = true;
+      btn.classList.add('recording');
+      btn.textContent = '🎙️ Stream Mic: ON (Mute)';
+      setExpression('listening', 90, 105);
+
+      const voiceBar = document.getElementById('liveVoiceTranscriptBar');
+      activeRecognition.onresult = (event) => {
+        const lastIdx = event.results.length - 1;
+        const resultItem = event.results[lastIdx];
+        const rawTranscript = resultItem[0].transcript.trim();
+        const corrected = normalizeVoicePhoneticsJS(rawTranscript);
+
+        // If sleeping: stay asleep until "Hey Clumsy" / "Clumsy" / "Wake up" is spoken
+        if (isDesktopSleeping) {
+          if (/\b(clumsy|wake\s+up)\b/i.test(corrected)) {
+            if (!resultItem.isFinal) {
+              triggerDesktopWakeupShake();
+              if (voiceBar) voiceBar.textContent = '✨ Waking up! "Hey Clumsy" heard...';
+              return;
+            }
+            const remainder = corrected.replace(/^(?:hey|hi|ok|okay|yo)?\s*(?:clumsy|wake\s+up)[\s,!?.:-]*/i, '').trim();
+            triggerDesktopWakeupShake(() => {
+              if (remainder) {
+                document.getElementById('userInput').value = remainder;
+                sendQuery(true);
+              } else {
+                const msg = "I'm wide awake and ready! How can I help you?";
+                appendMessage(msg, 'assistant');
+                speakJarvisReply(msg);
+              }
+            });
+          }
+          return;
+        }
+
+        resetDesktopSleepTimer();
+        if (!resultItem.isFinal) {
+          if (voiceBar) voiceBar.textContent = `🎙️ Hearing (Live): "${corrected}"...`;
+          return;
+        }
+        const alts = [];
+        for (let i = 0; i < resultItem.length; i++) {
+          if (resultItem[i] && resultItem[i].transcript) {
+            alts.push(resultItem[i].transcript.trim());
+          }
+        }
+        if (corrected) {
+          if (voiceBar) voiceBar.textContent = `✅ Voice Recognized: "${corrected}"`;
+          document.getElementById('userInput').value = corrected;
+          sendQuery(true, alts);
+        }
+      };
+      activeRecognition.onerror = () => {};
+      activeRecognition.onend = () => {
+        // Continuous Stream-Flow mode: auto-restart listening unless user muted
+        if (isDictating) {
+          try { activeRecognition.start(); } catch (_) {}
+        }
+      };
+      try { activeRecognition.start(); } catch (_) {}
+    }
+
+    resetDesktopSleepTimer();
+    refreshStatus();
+  </script>
+</body>
+</html>

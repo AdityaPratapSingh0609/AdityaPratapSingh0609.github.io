@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#02050c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CLUMSY" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/deskbot_render.jpg" />
+  <title>CLUMSY: your everyday AI // Living Robot Companion</title>
+  <script src="/eyeballs.js"></script>
+  <style>
+    :root {
+      --bg: #09090b;
+      --card: rgba(20, 20, 26, 0.90);
+      --border: rgba(255, 255, 255, 0.12);
+      --accent: #c084fc;
+      --success: #34d399;
+      --danger: #f43f5e;
+      --text: #fafafa;
+      --muted: #a1a1aa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* STEP 1: Connect to Laptop Hub & Bluetooth Handshake Screen */
+    #connectHandshakeScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background:
+        radial-gradient(circle at 25% 20%, rgba(168, 85, 247, 0.18) 0%, transparent 50%),
+        radial-gradient(circle at 75% 80%, rgba(244, 63, 94, 0.14) 0%, transparent 50%),
+        #09090b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    #connectHandshakeScreen.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(1.05);
+    }
+
+    .handshake-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 26px;
+      padding: 28px 22px;
+      box-shadow: 0 20px 55px rgba(0, 0, 0, 0.78), inset 0 0 28px rgba(192, 132, 252, 0.08);
+      backdrop-filter: blur(18px);
+    }
+    .pulse-ring {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      background: rgba(168, 85, 247, 0.15);
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 0 32px rgba(168, 85, 247, 0.45);
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 24px rgba(168, 85, 247, 0.38); }
+      50% { transform: scale(1.07); box-shadow: 0 0 42px rgba(244, 63, 94, 0.65); }
+    }
+    .handshake-title {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .handshake-sub {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+    .hub-status-box {
+      background: #121217;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      font-size: 12px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .connect-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: #ffffff;
+      border: none;
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(168, 85, 247, 0.42);
+      margin-bottom: 10px;
+    }
+    .bt-btn {
+      width: 100%;
+      background: rgba(168, 85, 247, 0.14);
+      color: #e9d5ff;
+      border: 1px solid rgba(192, 132, 252, 0.35);
+      padding: 11px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* STEP 2: Full-Screen Living Eyeballs Avatar (Pure Bot Mode) */
+    #eyesStreamScreen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: radial-gradient(circle at 50% 48%, #13111c 0%, #050507 82%);
+    }
+
+    #mobileEyeballCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Top Minimal Floating HUD */
+    .top-hud {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      background: linear-gradient(to bottom, rgba(9, 9, 11, 0.85), transparent);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .hud-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(20, 20, 26, 0.82);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+    }
+    .dot-live {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+    .dot-live.sleeping {
+      background: #c084fc;
+      box-shadow: 0 0 10px #c084fc;
+    }
+    .hud-action-btn {
+      background: rgba(24, 24, 31, 0.85);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 11px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+    }
+    .hud-action-btn:hover {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: #ffffff;
+    }
+
+    /* Bottom Pure Voice & Caption HUD */
+    .bottom-hud {
+      position: relative;
+      z-index: 10;
+      padding: 12px 16px 22px;
+      background: linear-gradient(to top, rgba(9, 9, 11, 0.92) 45%, transparent);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .voice-caption {
+      background: rgba(20, 20, 26, 0.82);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 11px 16px;
+      font-size: 13.5px;
+      color: #f4f4f5;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .control-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .control-bar input {
+      flex: 1;
+      background: rgba(18, 18, 23, 0.9);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 14px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      outline: none;
+    }
+    .control-bar input:focus {
+      border-color: var(--accent);
+    }
+    .btn-mic {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1.5px solid #10b981;
+      padding: 11px 14px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-mic.muted {
+      background: rgba(244, 63, 94, 0.18);
+      color: #fb7185;
+      border-color: #f43f5e;
+    }
+    .btn-action {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: #ffffff;
+      border: none;
+      padding: 11px 16px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- STEP 1: Laptop Hub & Bluetooth Handshake Overlay -->
+  <div id="connectHandshakeScreen">
+    <div class="handshake-card">
+      <div class="pulse-ring">👁️</div>
+      <div class="handshake-title">CLUMSY // YOUR EVERYDAY AI</div>
+      <div class="handshake-sub">
+        Link your phone via <b>Bluetooth</b> or <b>Wi-Fi</b> to your Laptop. Your phone becomes the live <b>CLUMSY Robot Head</b> — continuously listening, reacting with living eyes, and executing tasks!
+      </div>
+      <div class="hub-status-box">
+        <div>📡 <b>Laptop Link:</b> <span id="hubDetectStatus" style="color: var(--success);">Ready (Bluetooth &amp; Cloud Sync)</span></div>
+        <div>🔵 <b>Bluetooth Status:</b> <span id="btPairStatus">Tap below to pair Bluetooth or launch</span></div>
+        <div>🎙️ <b>Always-On Mode:</b> Wake word <b>"Hey Clumsy"</b> • Auto-Sleep after 50s</div>
+      </div>
+      <button class="connect-btn" id="btnConnectLaptop" onclick="completeLaptopHandshake()">
+        🚀 Launch CLUMSY Living Eyes
+      </button>
+      <button class="bt-btn" onclick="pairBluetoothDevice()">
+        🔵 Pair Phone to Laptop via Bluetooth
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Full-Screen Living Eyeballs Avatar (Clean Autonomous Face) -->
+  <div id="eyesStreamScreen">
+    <canvas id="mobileEyeballCanvas"></canvas>
+
+    <div class="top-hud">
+      <div class="hud-pill">
+        <span class="dot-live" id="wsDot"></span>
+        <span id="linkBadgeText">CLUMSY • Listening ("Hey Clumsy")</span>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button class="hud-action-btn" onclick="pairBluetoothDevice()">🔵 Bluetooth</button>
+        <button class="hud-action-btn" id="btnInstallPwa" onclick="installMobileApp()">⬇ Install App</button>
+      </div>
+    </div>
+
+    <div class="bottom-hud">
+      <div class="voice-caption" id="jarvisVoiceCaption">
+        "Hi! I am CLUMSY. Speak naturally or say 'Hey Clumsy' anytime!"
+      </div>
+
+      <div class="control-bar">
+        <button class="btn-mic" id="btnStreamMic" onclick="toggleStreamMic()">🎙️ Mic: ON</button>
+        <input
+          type="text"
+          id="mobileQueryInput"
+          placeholder="Say 'Hey Clumsy', 'Thank you', or any command..."
+          onkeydown="if(event.key==='Enter') sendMobileCommand()"
+        />
+        <button class="btn-action" onclick="sendMobileCommand()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const eyeballCanvas = document.getElementById('mobileEyeballCanvas');
+    const eyeballEngine = window.DeskbotEyeballEngine
+      ? new window.DeskbotEyeballEngine(eyeballCanvas, { fullScreen: true })
+      : null;
+
+    let wsConn = null;
+    let streamMicEnabled = true;
+    let speechRec = null;
+    let wakeLockSentinel = null;
+    let deferredInstallPrompt = null;
+    let bluetoothDeviceName = localStorage.getItem('clumsy_bt_device') || '';
+    let laptopHubHost = localStorage.getItem('clumsy_laptop_host') || '';
+
+    // 50-Second Inactivity Sleep Timer & Wake-Up State
+    const IDLE_SLEEP_TIMEOUT_MS = 50000; // 50 seconds
+    let sleepTimerId = null;
+    let isBotSleeping = false;
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('btnInstallPwa');
+      if (btn) btn.style.display = 'inline-block';
+    });
+
+    async function installMobileApp() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+      } else {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (isIOS) {
+          alert("To install CLUMSY on iPhone:\n1. Tap the Share button at the bottom of Safari (square with arrow pointing up).\n2. Scroll down and tap 'Add to Home Screen' (➕).\n3. Tap 'Add' at the top right!");
+        } else {
+          alert("To install CLUMSY:\n1. Tap the browser menu (⋮).\n2. Tap 'Install app' or 'Add to Home screen'.");
+        }
+      }
+    }
+
+    async function pairBluetoothDevice() {
+      try {
+        if (navigator.bluetooth && navigator.bluetooth.requestDevice) {
+          const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+          });
+          bluetoothDeviceName = device.name || 'Laptop-Bluetooth-Hub';
+          localStorage.setItem('clumsy_bt_device', bluetoothDeviceName);
+          const btEl = document.getElementById('btPairStatus');
+          if (btEl) btEl.textContent = `Paired to ${bluetoothDeviceName}`;
+          document.getElementById('linkBadgeText').textContent = `CLUMSY • BT Linked (${bluetoothDeviceName})`;
+          triggerWakeupAndHappy(`Bluetooth linked to ${bluetoothDeviceName}!`);
+          return;
+        }
+      } catch (err) {
+        // User cancelled or Web Bluetooth unavailable on iOS Safari — offer direct Laptop IP bridge
+      }
+      const currentHost = laptopHubHost || window.location.hostname || '';
+      const entered = prompt(
+        'Bluetooth / Laptop Hub Sync:\nEnter your Laptop Wi-Fi/BT IP (e.g. 172.20.10.2:8080) or leave blank for Autonomous Mode:',
+        currentHost
+      );
+      if (entered !== null && entered.trim() !== '') {
+        laptopHubHost = entered.trim();
+        localStorage.setItem('clumsy_laptop_host', laptopHubHost);
+        document.getElementById('linkBadgeText').textContent = `CLUMSY • Linked (${laptopHubHost})`;
+        connectMobileWebSocket(9121);
+      } else {
+        document.getElementById('linkBadgeText').textContent = 'CLUMSY • Bluetooth Autonomous Mode';
+      }
+    }
+
+    function resetIdleSleepTimer() {
+      if (sleepTimerId) clearTimeout(sleepTimerId);
+      sleepTimerId = setTimeout(() => {
+        enterSleepMode();
+      }, IDLE_SLEEP_TIMEOUT_MS);
+    }
+
+    function enterSleepMode() {
+      isBotSleeping = true;
+      if (eyeballEngine) {
+        eyeballEngine.setReaction('sleeping', 90, 80);
+      }
+      const dot = document.getElementById('wsDot');
+      if (dot) dot.classList.add('sleeping');
+      document.getElementById('linkBadgeText').textContent = 'CLUMSY • Sleeping (Say "Hey Clumsy")';
+      document.getElementById('jarvisVoiceCaption').textContent = '💤 Sleeping... Say "Hey Clumsy" to wake me up.';
+      syncTelemetryToLaptop('sleeping', 90, 80);
+    }
+
+    function triggerWakeupAndHappy(greetingText, callbackAfterWake) {
+      isBotSleeping = false;
+      const dot = document.getElementById('wsDot');
+      if (dot) dot.classList.remove('sleeping');
+      document.getElementById('linkBadgeText').textContent = bluetoothDeviceName
+        ? `CLUMSY • BT (${bluetoothDeviceName})`
+        : 'CLUMSY • Awake & Listening';
+      resetIdleSleepTimer();
+
+      if (eyeballEngine && typeof eyeballEngine.triggerWakeupShake === 'function') {
+        eyeballEngine.triggerWakeupShake(() => {
+          setMobileReaction('happy', 90, 96);
+          if (typeof callbackAfterWake === 'function') {
+            callbackAfterWake();
+          }
+        });
+      } else {
+        setMobileReaction('happy', 90, 96);
+        if (typeof callbackAfterWake === 'function') callbackAfterWake();
+      }
+
+      if (greetingText) {
+        document.getElementById('jarvisVoiceCaption').textContent = greetingText;
+        speakOnPhone(greetingText);
+      }
+    }
+
+    async function requestBackgroundWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockSentinel = await navigator.wakeLock.request('screen');
+        } catch (_) {}
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        requestBackgroundWakeLock();
+      }
+    });
+
+    function speakOnPhone(text, afterReaction) {
+      if (!text || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.04;
+        utter.pitch = 0.98;
+        utter.onstart = () => {
+          if (eyeballEngine && !isBotSleeping) {
+            eyeballEngine.setAudioLevel(0.82);
+          }
+        };
+        utter.onend = () => {
+          if (eyeballEngine) {
+            eyeballEngine.setAudioLevel(0.05);
+            if (!isBotSleeping && afterReaction) {
+              eyeballEngine.setReaction(afterReaction, 90, 96);
+            }
+          }
+        };
+        window.speechSynthesis.speak(utter);
+      } catch (_) {}
+    }
+
+    function getApiBase() {
+      if (laptopHubHost) {
+        const proto = window.location.protocol === 'http:' ? 'http:' : 'http:';
+        const clean = laptopHubHost.replace(/^https?:\/\//i, '');
+        return `${proto}//${clean}`;
+      }
+      return '';
+    }
+
+    function syncTelemetryToLaptop(rx, pan = 90, tilt = 95) {
+      fetch(`${getApiBase()}/api/robot/telemetry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expression: rx, pan, tilt }),
+      }).catch(() => {});
+    }
+
+    function setMobileReaction(rx, pan = 90, tilt = 95) {
+      if (eyeballEngine) eyeballEngine.setReaction(rx, pan, tilt);
+      syncTelemetryToLaptop(rx, pan, tilt);
+    }
+
+    function connectMobileWebSocket(wsPort) {
+      const rawHost = laptopHubHost ? laptopHubHost.split(':')[0] : (window.location.hostname || '127.0.0.1');
+      if (rawHost.includes('vercel.app') && !laptopHubHost) return;
+      const url = `ws://${rawHost}:${wsPort || 9121}`;
+      try {
+        if (wsConn && (wsConn.readyState === WebSocket.OPEN || wsConn.readyState === WebSocket.CONNECTING)) {
+          return;
+        }
+        wsConn = new WebSocket(url);
+        wsConn.onopen = () => {
+          document.getElementById('linkBadgeText').textContent = 'CLUMSY • Laptop Live Synced';
+        };
+        wsConn.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data);
+            const payload = data.payload || data;
+            if (payload.telemetry && eyeballEngine && !isBotSleeping) {
+              eyeballEngine.setReaction(
+                payload.telemetry.expression || 'happy',
+                payload.telemetry.pan_deg || 90,
+                payload.telemetry.tilt_deg || 95
+              );
+            }
+            if (payload.response) {
+              resetIdleSleepTimer();
+              document.getElementById('jarvisVoiceCaption').textContent =
+                payload.spoken_tts || payload.response.split('```')[0].trim();
+            }
+          } catch (_) {}
+        };
+        wsConn.onclose = () => {
+          wsConn = null;
+        };
+      } catch (_) {}
+    }
+
+    async function probeLaptopHub() {
+      try {
+        const res = await fetch(`${getApiBase()}/api/handshake`);
+        if (!res.ok) throw new Error('standalone');
+        const info = await res.json();
+        document.getElementById('hubDetectStatus').textContent = 'ONLINE & RECOGNIZED';
+        connectMobileWebSocket(info.ws_port);
+        if (localStorage.getItem('deskbot_laptop_paired') === '1') {
+          setTimeout(() => completeLaptopHandshake(true), 350);
+        }
+      } catch (_) {
+        if (localStorage.getItem('deskbot_laptop_paired') === '1') {
+          setTimeout(() => completeLaptopHandshake(true), 350);
+        }
+      }
+    }
+
+    async function completeLaptopHandshake(isAuto = false) {
+      localStorage.setItem('deskbot_laptop_paired', '1');
+      document.getElementById('connectHandshakeScreen').classList.add('hidden');
+      requestBackgroundWakeLock();
+      startAlwaysOnMic();
+      resetIdleSleepTimer();
+
+      if (!isAuto) {
+        triggerWakeupAndHappy("Hi! I'm CLUMSY. I'm listening — just speak or say 'Hey Clumsy' anytime!");
+      } else if (eyeballEngine) {
+        eyeballEngine.setReaction('happy', 90, 96);
+      }
+
+      fetch(`${getApiBase()}/api/mobile/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          device_name: bluetoothDeviceName || 'Phone-CLUMSY-Eyes',
+          always_on_mic: true,
+          voice_output_target: 'source_device',
+        }),
+      }).catch(() => {});
+    }
+
+    function normalizeMobilePhonetics(rawText) {
+      if (!rawText) return '';
+      return String(rawText)
+        .replace(/\b(clumzy|klumsy|klumzy|clumsee|clumsie|clumsy\s+ai)\b/gi, 'Clumsy')
+        .replace(/\b(harvis|charvis|jervis|jarves|jarvis)\b/gi, 'Clumsy')
+        .replace(/\b(jeemail|gee\s*mail|g\s+mail|g-mail)\b/gi, 'Gmail')
+        .replace(/\b(callender|calender|calandar)\b/gi, 'Calendar')
+        .replace(/\b(net\s+flicks|netflex|net\s+flix)\b/gi, 'Netflix')
+        .replace(/\b(ama\s+zon|amazn)\b/gi, 'Amazon')
+        .replace(/\b(blander|blendr|blendar)\b/gi, 'Blender')
+        .replace(/\b(three\s+d|3\s+d|3-d|threed)\b/gi, '3D')
+        .trim();
+    }
+
+    // Autonomous Local Emotion & Intent Analyzer (handles "Thank You", Sleep/Wake, Randoms & Tasks)
+    function analyzeAutonomousReaction(queryText) {
+      const q = (queryText || '').toLowerCase().trim();
+
+      // 1. Thank you / Gratitude -> Random Happy, Love, or Wink!
+      if (/\b(thank\s*you|thanks|thx|appreciate\s+it|grateful|ty)\b/i.test(q)) {
+        const pool = ['happy', 'love', 'wink'];
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
+        const replies = {
+          happy: "You're very welcome! Always happy to help you!",
+          love: "Aww, you're so welcome! Sending you lots of love!",
+          wink: "Anytime at all! Consider it done with a wink!",
+        };
+        return { reaction: chosen, spoken: replies[chosen], isLocalImmediate: true };
+      }
+
+      // 2. Affection / Praise -> Love / Excited / Wink
+      if (/\b(i\s+love\s+you|love\s+you|you\s+are\s+awesome|you're\s+the\s+best|good\s+bot|good\s+job|well\s+done|amazing\s+job|cute)\b/i.test(q)) {
+        const pool = ['love', 'excited', 'wink', 'happy'];
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
+        return {
+          reaction: chosen,
+          spoken: "Thank you so much! I love being your everyday AI robot companion!",
+          isLocalImmediate: true,
+        };
+      }
+
+      // 3. Sleep command
+      if (/\b(go\s+to\s+sleep|sleep\s+now|sleep\s+mode|good\s*night|take\s+a\s+nap)\b/i.test(q)) {
+        return {
+          reaction: 'sleeping',
+          spoken: "Going to sleep now. Say 'Hey Clumsy' whenever you want to wake me up!",
+          enterSleep: true,
+          isLocalImmediate: true,
+        };
+      }
+
+      // 4. Pure Wake-Up Call ("Hey Clumsy", "Clumsy", "Wake up")
+      if (/^(?:hey\s+clumsy|hi\s+clumsy|ok\s+clumsy|yo\s+clumsy|clumsy|wake\s+up|are\s+you\s+awake)[\s!?.]*$/i.test(q)) {
+        return {
+          reaction: 'happy',
+          spoken: "I'm wide awake and listening! What can I do for you?",
+          wakeupShake: true,
+          isLocalImmediate: true,
+        };
+      }
+
+      // 5. Joke / Fun / Wink / Randoms
+      if (/\b(wink|give\s+me\s+a\s+wink)\b/i.test(q)) {
+        return { reaction: 'wink', spoken: "Here is a wink just for you!", isLocalImmediate: true };
+      }
+      if (/\b(tell\s+me\s+a\s+joke|make\s+me\s+laugh|something\s+funny)\b/i.test(q)) {
+        const jokes = [
+          "Why did the robot go on a diet? Because he had way too many megabytes!",
+          "I tried to catch some fog earlier... I mist! Haha!",
+          "Why do programmers prefer dark mode? Because light attracts bugs!",
+        ];
+        const pool = ['excited', 'wink', 'happy'];
+        return {
+          reaction: pool[Math.floor(Math.random() * pool.length)],
+          spoken: jokes[Math.floor(Math.random() * jokes.length)],
+          isLocalImmediate: true,
+        };
+      }
+      if (/\b(surprised|wow|no\s+way|oh\s+my\s+god|omg|shocked)\b/i.test(q)) {
+        return { reaction: 'surprised', spoken: "Whoa! That really is surprising!", isLocalImmediate: true };
+      }
+      if (/\b(confused|what\s+do\s+you\s+mean|huh)\b/i.test(q)) {
+        return { reaction: 'confused', spoken: "Hmm, let me think about that carefully for you.", isLocalImmediate: true };
+      }
+      if (/\b(how\s+are\s+you|how's\s+it\s+going|what's\s+up|hello|hi\s+there|good\s+morning|good\s+evening)\b/i.test(q)) {
+        const pool = ['happy', 'excited', 'wink'];
+        return {
+          reaction: pool[Math.floor(Math.random() * pool.length)],
+          spoken: "I'm feeling fantastic and all systems are online! How can I assist you today?",
+          isLocalImmediate: true,
+        };
+      }
+
+      // 6. Task-based reaction inference
+      if (/\b(code|java|python|c\+\+|javascript|html|program|algorithm|function)\b/i.test(q)) {
+        return { reaction: 'coding', spoken: null, isLocalImmediate: false };
+      }
+      if (/\b(3d|blender|render|video|photo|pic|netflix|prime|hotstar|youtube|spotify|play|song|music)\b/i.test(q)) {
+        return { reaction: 'excited', spoken: null, isLocalImmediate: false };
+      }
+      return { reaction: 'happy', spoken: null, isLocalImmediate: false };
+    }
+
+    function startAlwaysOnMic() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return;
+      if (speechRec) return;
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((stream) => {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const src = ctx.createMediaStreamSource(stream);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 64;
+            src.connect(analyser);
+            const buf = new Uint8Array(analyser.frequencyBinCount);
+            function updateLevel() {
+              if (streamMicEnabled && eyeballEngine && !isBotSleeping) {
+                analyser.getByteFrequencyData(buf);
+                let s = 0;
+                for (let i = 0; i < buf.length; i++) s += buf[i];
+                eyeballEngine.setAudioLevel(Math.min(1, (s / (buf.length * 255)) * 2.4));
+              }
+              requestAnimationFrame(updateLevel);
+            }
+            requestAnimationFrame(updateLevel);
+          })
+          .catch(() => {});
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      speechRec = new SpeechRecognition();
+      speechRec.lang = 'en-US';
+      speechRec.continuous = true;
+      speechRec.interimResults = true;
+      speechRec.maxAlternatives = 3;
+
+      speechRec.onresult = (event) => {
+        if (!streamMicEnabled) return;
+        const last = event.results.length - 1;
+        const item = event.results[last];
+        const rawText = item[0].transcript.trim();
+        const text = normalizeMobilePhonetics(rawText);
+        const low = text.toLowerCase();
+
+        // While sleeping: ONLY wake up when "Hey Clumsy" / "Clumsy" / "Wake up" is spoken!
+        if (isBotSleeping) {
+          if (/\b(clumsy|wake\s+up)\b/i.test(low)) {
+            if (!item.isFinal) {
+              triggerWakeupAndHappy("I'm awake! Listening...");
+              return;
+            }
+            // Strip wake phrase and check if there's an immediate follow-up command
+            const remainder = text.replace(/^(?:hey|hi|ok|okay|yo)?\s*(?:clumsy|wake\s+up)[\s,!?.:-]*/i, '').trim();
+            if (remainder) {
+              triggerWakeupAndHappy(null, () => {
+                document.getElementById('mobileQueryInput').value = remainder;
+                sendMobileCommand();
+              });
+            } else {
+              triggerWakeupAndHappy("I'm awake! How can I help you?");
+            }
+          }
+          return;
+        }
+
+        // Awake: show live listening state
+        resetIdleSleepTimer();
+        if (!item.isFinal) {
+          setMobileReaction('listening', 90, 105);
+          document.getElementById('jarvisVoiceCaption').textContent = `🎙️ Listening: "${text}"...`;
+          return;
+        }
+
+        const alts = [];
+        for (let i = 0; i < item.length; i++) {
+          if (item[i] && item[i].transcript) alts.push(item[i].transcript.trim());
+        }
+        if (text) {
+          document.getElementById('mobileQueryInput').value = text;
+          sendMobileCommand(alts);
+        }
+      };
+      speechRec.onerror = () => {};
+      speechRec.onend = () => {
+        if (streamMicEnabled) {
+          try { speechRec.start(); } catch (_) {}
+        }
+      };
+      try { speechRec.start(); } catch (_) {}
+    }
+
+    function toggleStreamMic() {
+      streamMicEnabled = !streamMicEnabled;
+      const btn = document.getElementById('btnStreamMic');
+      if (streamMicEnabled) {
+        btn.classList.remove('muted');
+        btn.textContent = '🎙️ Mic: ON';
+        try { if (speechRec) speechRec.start(); } catch (_) {}
+      } else {
+        btn.classList.add('muted');
+        btn.textContent = '🔇 Mic: MUTED';
+        try { if (speechRec) speechRec.stop(); } catch (_) {}
+      }
+    }
+
+    async function sendMobileCommand(alternatives = null) {
+      const input = document.getElementById('mobileQueryInput');
+      const query = normalizeMobilePhonetics(input.value.trim());
+      if (!query) return;
+      input.value = '';
+
+      // If currently sleeping and user typed or said "hey clumsy", wake up with eye shake first!
+      if (isBotSleeping) {
+        const remainder = query.replace(/^(?:hey|hi|ok|okay|yo)?\s*(?:clumsy|wake\s+up)[\s,!?.:-]*/i, '').trim();
+        if (!remainder) {
+          triggerWakeupAndHappy("I'm awake! How can I help you?");
+          return;
+        }
+        isBotSleeping = false;
+        const dot = document.getElementById('wsDot');
+        if (dot) dot.classList.remove('sleeping');
+        if (eyeballEngine && typeof eyeballEngine.triggerWakeupShake === 'function') {
+          eyeballEngine.triggerWakeupShake();
+        }
+      }
+
+      resetIdleSleepTimer();
+      const localIntent = analyzeAutonomousReaction(query);
+
+      if (localIntent.enterSleep) {
+        document.getElementById('jarvisVoiceCaption').textContent = localIntent.spoken;
+        speakOnPhone(localIntent.spoken);
+        enterSleepMode();
+        return;
+      }
+
+      if (localIntent.wakeupShake) {
+        triggerWakeupAndHappy(localIntent.spoken);
+        return;
+      }
+
+      if (localIntent.isLocalImmediate && localIntent.spoken) {
+        setMobileReaction(localIntent.reaction, 90, 98);
+        document.getElementById('jarvisVoiceCaption').textContent = localIntent.spoken;
+        speakOnPhone(localIntent.spoken, localIntent.reaction);
+        return;
+      }
+
+      setMobileReaction('thinking', 105, 112);
+      document.getElementById('jarvisVoiceCaption').textContent = `⚡ Processing: "${query}"...`;
+
+      try {
+        const res = await fetch(`${getApiBase()}/api/mobile/agent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, alternatives, execute_os: true, source_device: 'mobile_app' }),
+        });
+        if (!res.ok) throw new Error('standalone');
+        const data = await res.json();
+        const spokenText = data.spoken_tts || data.response || 'Done!';
+        const finalRx = data.eye_reaction || localIntent.reaction || 'happy';
+        document.getElementById('jarvisVoiceCaption').textContent = spokenText;
+        setMobileReaction(finalRx, 90, 96);
+        speakOnPhone(spokenText, finalRx);
+      } catch (_) {
+        const fallbackReply = localIntent.spoken || `On it! Executing "${query}" for you right now.`;
+        document.getElementById('jarvisVoiceCaption').textContent = fallbackReply;
+        setMobileReaction(localIntent.reaction || 'happy', 90, 96);
+        speakOnPhone(fallbackReply, localIntent.reaction || 'happy');
+      }
+    }
+
+    resetIdleSleepTimer();
+    probeLaptopHub();
+  </script>
+</body>
+</html>
